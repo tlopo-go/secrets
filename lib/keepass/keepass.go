@@ -1,6 +1,7 @@
 package keepass
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/tobischo/gokeepasslib/v3"
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
@@ -9,9 +10,14 @@ import (
 )
 
 type Secret struct {
-	Service  string
-	Account  string
-	Password string
+	Service  string `json:"service"`
+	Account  string `json:"account"`
+	Password string `json:"password"`
+}
+
+func (s *Secret) ToJson() string {
+	b, _ := json.Marshal(s)
+	return string(b)
 }
 
 type KeePass struct {

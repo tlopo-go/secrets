@@ -30,5 +30,5 @@ func run(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Printf("%#v\n", s)
+	fmt.Println(s.ToJson())
 }
