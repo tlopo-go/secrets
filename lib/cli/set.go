@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"github.com/spf13/cobra"
+	"github.com/tlopo-go/secrets/lib/app"
 	k "github.com/tlopo-go/secrets/lib/keepass"
 	"os"
 )
@@ -33,8 +34,7 @@ func init() {
 }
 
 func setRun(cmd *cobra.Command, args []string) {
-	kp := k.KeePass{"/tmp/db.kdbx", "1234"}
-
+	kp := k.KeePass{app.GetDatabasePath(), app.GetMasterPassword()}
 	err := kp.Write(k.Secret{setArgs.service, setArgs.account, setArgs.password})
 	if err != nil {
 		fmt.Println(err)
