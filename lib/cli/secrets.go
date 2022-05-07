@@ -7,6 +7,7 @@ import (
 func init() {
 	SecretsCmd.AddCommand(getCmd)
 	SecretsCmd.AddCommand(setCmd)
+	SecretsCmd.AddCommand(unlockCmd)
 }
 
 var SecretsCmd = &cobra.Command{
