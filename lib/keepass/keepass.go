@@ -71,6 +71,27 @@ func (k *KeePass) CreateDatabase() error {
 	return nil
 }
 
+func (k *KeePass) CheckPassword() (err error) {
+	r, err := os.Open(k.DatabaseFile)
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	//Recover from panic
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.New("Wrong Password")
+		}
+	}()
+
+	db := gokeepasslib.NewDatabase()
+	db.Credentials = gokeepasslib.NewPasswordCredentials(k.MasterPassword)
+	gokeepasslib.NewDecoder(r).Decode(db)
+	db.UnlockProtectedEntries()
+	return
+}
+
 func (k *KeePass) Write(s Secret) error {
 	entry := gokeepasslib.NewEntry()
 	entry.Values = append(entry.Values, mkValue("Title", s.Service))

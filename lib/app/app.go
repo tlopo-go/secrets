@@ -78,15 +78,17 @@ func IsDBInitialized() bool {
 func UnlockDB() {
 	msg := "To unlock database, please enter password: "
 	cfg.masterPassword = promptPasswordWithMessage(msg)
+	kp := k.KeePass{cfg.databasePath, cfg.masterPassword}
+	err := kp.CheckPassword()
+	if err != nil {
+		log.Fatal(err)
+	}
 	dblocker.Unlock(cfg.masterPassword, unlockedFile)
 }
 
 func LockDB() {
 	if !IsDBLocked() {
-		err := os.Remove(unlockedFile)
-		if err != nil {
-			log.Fatal(err)
-		}
+		dblocker.Lock(unlockedFile)
 	} else {
 		log.Println("Database is already locked")
 	}

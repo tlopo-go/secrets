@@ -16,6 +16,7 @@ var unlockCmd = &cobra.Command{
 func unlockRun(cmd *cobra.Command, args []string) {
 	if !app.IsDBLocked() {
 		log.Println("Database is already unlocked")
+		return
 	}
 	app.UnlockDB()
 }

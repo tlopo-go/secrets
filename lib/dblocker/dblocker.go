@@ -7,8 +7,12 @@ import (
 	"os"
 )
 
-func Lock() {
+func Lock(filename string) {
 	// just remove the file
+	err := os.Remove(filename)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func Unlock(pass, filename string) {
@@ -19,7 +23,6 @@ func Unlock(pass, filename string) {
 		log.Fatal(err)
 	}
 
-	// TODO: Before writing the file, check if the password is correct
 	err = os.WriteFile(filename, enc, 0644)
 	if err != nil {
 		log.Fatal(err)
