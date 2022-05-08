@@ -25,9 +25,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	if app.IsDBLocked() {
-		log.Fatal("Database is locked")
-	}
+	app.ValidateUnlocked()
 	kp := k.KeePass{app.GetDatabasePath(), app.GetMasterPassword()}
 	s, err := kp.Read(service)
 	if err != nil {

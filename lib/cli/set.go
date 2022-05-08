@@ -33,9 +33,7 @@ func init() {
 }
 
 func setRun(cmd *cobra.Command, args []string) {
-	if app.IsDBLocked() {
-		log.Fatal("Database is locked")
-	}
+	app.ValidateUnlocked()
 	kp := k.KeePass{app.GetDatabasePath(), app.GetMasterPassword()}
 	err := kp.Write(k.Secret{setArgs.service, setArgs.account, setArgs.password})
 	if err != nil {

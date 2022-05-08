@@ -21,18 +21,6 @@ type config struct {
 
 var unlockedFile string
 
-func GetDatabasePath() string {
-	return cfg.databasePath
-}
-
-func GetMasterPassword() string {
-	return cfg.masterPassword
-}
-
-func GetDatabaseHome() string {
-	return cfg.databaseHome
-}
-
 func init() {
 	cfg.databaseHome = os.Getenv("SECRETS_HOME")
 	if len(cfg.databaseHome) == 0 {
@@ -48,18 +36,71 @@ func init() {
 
 	unlockedFile = fmt.Sprintf("%s/.unlocked", cfg.databaseHome)
 
-	setupDatabase()
+	if !IsDBLocked() {
+		cfg.masterPassword = dblocker.GetPassword(unlockedFile)
+	}
 }
 
-func setupDatabase() {
+func GetDatabasePath() string {
+	return cfg.databasePath
+}
+
+func GetMasterPassword() string {
+	return cfg.masterPassword
+}
+
+func GetDatabaseHome() string {
+	return cfg.databaseHome
+}
+
+func ValidateUnlocked() {
+	if !IsDBInitialized() {
+		log.Fatal("Secrets database not initialized, please run init command")
+	} else if IsDBLocked() {
+		log.Fatal("Secrets database is locked, please run unlock command")
+	}
+}
+
+func IsDBLocked() bool {
+	if _, err := os.Stat(unlockedFile); errors.Is(err, os.ErrNotExist) {
+		return true
+	}
+	return false
+}
+
+func IsDBInitialized() bool {
 	if _, err := os.Stat(cfg.databasePath); errors.Is(err, os.ErrNotExist) {
-		fmt.Println("Creating a new secrets database.\n")
+		return false
+	}
+	return true
+}
+
+func UnlockDB() {
+	msg := "To unlock database, please enter password: "
+	cfg.masterPassword = promptPasswordWithMessage(msg)
+	dblocker.Unlock(cfg.masterPassword, unlockedFile)
+}
+
+func LockDB() {
+	if !IsDBLocked() {
+		err := os.Remove(unlockedFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Println("Database is already locked")
+	}
+}
+
+func InitDB() {
+	if !IsDBInitialized() {
+		fmt.Println("Creating a new secrets database\n")
 		cfg.masterPassword = promptNewPassword()
 		kp := k.KeePass{cfg.databasePath, cfg.masterPassword}
 		kp.CreateDatabase()
 		dblocker.Unlock(cfg.masterPassword, unlockedFile)
-	} else if !IsDBLocked() {
-		cfg.masterPassword = dblocker.GetPassword(unlockedFile)
+	} else {
+		log.Println("Database already initialized")
 	}
 }
 
@@ -81,17 +122,4 @@ func promptPasswordWithMessage(message string) (password string) {
 	}
 	password = string(bytePassword)
 	return
-}
-
-func IsDBLocked() bool {
-	if _, err := os.Stat(unlockedFile); errors.Is(err, os.ErrNotExist) {
-		return true
-	}
-	return false
-}
-
-func UnlockDB() {
-	msg := "To unlock database, please enter password: "
-	cfg.masterPassword = promptPasswordWithMessage(msg)
-	dblocker.Unlock(cfg.masterPassword, unlockedFile)
 }

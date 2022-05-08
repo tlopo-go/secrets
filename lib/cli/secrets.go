@@ -8,6 +8,8 @@ func init() {
 	SecretsCmd.AddCommand(getCmd)
 	SecretsCmd.AddCommand(setCmd)
 	SecretsCmd.AddCommand(unlockCmd)
+	SecretsCmd.AddCommand(lockCmd)
+	SecretsCmd.AddCommand(initCmd)
 }
 
 var SecretsCmd = &cobra.Command{
