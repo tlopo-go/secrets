@@ -7,7 +7,7 @@ It's a bad practice to leave credentials in plain-text files in our laptops, and
 
 # Usage: 
 
-```bash
+```
 Command line secret manager
 
 Usage:
@@ -29,7 +29,7 @@ Flags:
 Use "secrets [command] --help" for more information about a command.
 ```
 
-In action: 
+Initialize Database: 
 ```
 $ secrets init
 Creating a new secrets database
@@ -37,8 +37,13 @@ Creating a new secrets database
 Please enter password for the new database: 
 Please confirm password: 
 2022/05/09 13:01:02 Database /Users/tiago/.secrets/db.kdbx created
-
+```
+Create Secret:
+```
 $ secrets set --service foo --account  user@noemail.com --password pass123
+```
+Read secret:
+```
 $ secrets get --service foo 
 {"service":"foo","account":"user@noemail.com","password":"pass123"}
 ```
