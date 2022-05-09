@@ -1,0 +1,12 @@
+builds:
+  - binary: secrets
+    flags:
+      - -trimpath
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+    env:
+      - CGO_ENANBLED=0
