@@ -92,12 +92,24 @@ func (k *KeePass) CheckPassword() (err error) {
 	return
 }
 
-func (k *KeePass) Write(s Secret) error {
-	entry := gokeepasslib.NewEntry()
-	entry.Values = append(entry.Values, mkValue("Title", s.Service))
-	entry.Values = append(entry.Values, mkValue("UserName", s.Account))
-	entry.Values = append(entry.Values, mkProtectedValue("Password", s.Password))
+type withDB func(db *gokeepasslib.Database)
 
+func (k *KeePass) withDBRead(fn withDB) (err error) {
+	r, err := os.Open(k.DatabaseFile)
+	if err != nil {
+		return
+	}
+	defer r.Close()
+
+	db := gokeepasslib.NewDatabase()
+	db.Credentials = gokeepasslib.NewPasswordCredentials(k.MasterPassword)
+	gokeepasslib.NewDecoder(r).Decode(db)
+	db.UnlockProtectedEntries()
+	fn(db)
+	return
+}
+
+func (k *KeePass) withDBWrite(fn withDB) error {
 	r, err := os.Open(k.DatabaseFile)
 	if err != nil {
 		return err
@@ -109,19 +121,7 @@ func (k *KeePass) Write(s Secret) error {
 	gokeepasslib.NewDecoder(r).Decode(db)
 	db.UnlockProtectedEntries()
 
-	// Find secret by title
-	var index = -1
-	for i, e := range db.Content.Root.Groups[0].Entries {
-		if e.GetTitle() == entry.GetTitle() {
-			index = i
-		}
-	}
-
-	if index == -1 {
-		db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, entry)
-	} else {
-		db.Content.Root.Groups[0].Entries[index] = entry
-	}
+	fn(db)
 
 	db.LockProtectedEntries()
 
@@ -138,30 +138,76 @@ func (k *KeePass) Write(s Secret) error {
 	return nil
 }
 
-func (k *KeePass) Read(service string) (Secret, error) {
-	r, err := os.Open(k.DatabaseFile)
-	if err != nil {
-		return Secret{}, err
-	}
-	defer r.Close()
-
-	db := gokeepasslib.NewDatabase()
-	db.Credentials = gokeepasslib.NewPasswordCredentials(k.MasterPassword)
-	gokeepasslib.NewDecoder(r).Decode(db)
-	db.UnlockProtectedEntries()
-
-	entries := db.Content.Root.Groups[0].Entries
-	var index = -1
-	for i, e := range entries {
-		if e.GetTitle() == service {
-			index = i
+func (k *KeePass) Read(service string) (secret Secret, err error) {
+	k.withDBRead(func(db *gokeepasslib.Database) {
+		entries := db.Content.Root.Groups[0].Entries
+		var index = -1
+		for i, e := range entries {
+			if e.GetTitle() == service {
+				index = i
+			}
 		}
-	}
 
-	if index == -1 {
-		return Secret{}, errors.New("Secret not found")
-	} else {
-		e := entries[index]
-		return Secret{e.GetTitle(), e.GetContent("UserName"), e.GetPassword()}, nil
-	}
+		if index == -1 {
+			err = errors.New("Secret not found")
+		} else {
+			e := entries[index]
+			secret = Secret{e.GetTitle(), e.GetContent("UserName"), e.GetPassword()}
+		}
+	})
+	return
+}
+
+func (k *KeePass) List() (names []string, err error) {
+	k.withDBRead(func(db *gokeepasslib.Database) {
+		entries := db.Content.Root.Groups[0].Entries
+		for _, e := range entries {
+			names = append(names, e.GetTitle())
+		}
+	})
+	return
+}
+
+func (k *KeePass) Write(s Secret) (err error) {
+	entry := gokeepasslib.NewEntry()
+	entry.Values = append(entry.Values, mkValue("Title", s.Service))
+	entry.Values = append(entry.Values, mkValue("UserName", s.Account))
+	entry.Values = append(entry.Values, mkProtectedValue("Password", s.Password))
+
+	err = k.withDBWrite(func(db *gokeepasslib.Database) {
+
+		// Find secret by title
+		var index = -1
+		for i, e := range db.Content.Root.Groups[0].Entries {
+			if e.GetTitle() == entry.GetTitle() {
+				index = i
+			}
+		}
+
+		if index == -1 {
+			db.Content.Root.Groups[0].Entries = append(db.Content.Root.Groups[0].Entries, entry)
+		} else {
+			db.Content.Root.Groups[0].Entries[index] = entry
+		}
+	})
+	return
+}
+
+func (k *KeePass) Delete(service string) (err error) {
+	err = k.withDBWrite(func(db *gokeepasslib.Database) {
+
+		// Find secret by title
+		var index = -1
+		for i, e := range db.Content.Root.Groups[0].Entries {
+			if e.GetTitle() == service {
+				index = i
+			}
+		}
+
+		if index != -1 {
+			entries := db.Content.Root.Groups[0].Entries
+			db.Content.Root.Groups[0].Entries = append(entries[:index], entries[index+1:]...)
+		}
+	})
+	return
 }

@@ -7,6 +7,8 @@ import (
 func init() {
 	SecretsCmd.AddCommand(getCmd)
 	SecretsCmd.AddCommand(setCmd)
+	SecretsCmd.AddCommand(deleteCmd)
+	SecretsCmd.AddCommand(listCmd)
 	SecretsCmd.AddCommand(unlockCmd)
 	SecretsCmd.AddCommand(lockCmd)
 	SecretsCmd.AddCommand(initCmd)
